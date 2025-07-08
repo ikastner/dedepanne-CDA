@@ -1,0 +1,125 @@
+version: '3.8'
+
+services:
+  # Base de données PostgreSQL
+  postgres:
+    image: postgres:15
+    container_name: dedepanne-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: dedepanne
+    ports:
+      - "5439:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend-dedepanne/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    networks:
+      - dedepanne-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Base de données MongoDB pour les logs
+  mongodb:
+    image: mongo:6
+    container_name: dedepanne-mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - dedepanne-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Interface web MongoDB
+  mongo-express:
+    image: mongo-express:1.0.0
+    container_name: dedepanne-mongo-express
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: admin
+      ME_CONFIG_MONGODB_ADMINPASSWORD: password
+      ME_CONFIG_MONGODB_URL: mongodb://admin:password@mongodb:27017/
+      ME_CONFIG_BASICAUTH_USERNAME: admin
+      ME_CONFIG_BASICAUTH_PASSWORD: password
+    ports:
+      - "8081:8081"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - dedepanne-network
+    restart: unless-stopped
+
+  # Backend NestJS
+  backend:
+    build: ./backend-dedepanne
+    container_name: dedepanne-backend
+    environment:
+      # Base de données PostgreSQL
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: postgres
+      DB_PASSWORD: password
+      DB_NAME: dedepanne
+      
+      # MongoDB pour les logs
+      MONGODB_URI: mongodb://admin:password@mongodb:27017/dedepanne_logs?authSource=admin
+      
+      # JWT
+      JWT_SECRET: your-super-secret-jwt-key-change-in-production
+      JWT_EXPIRES_IN: 24h
+      
+      # Application
+      PORT: 3001
+      NODE_ENV: development
+      FRONTEND_URL: http://localhost:3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./backend-dedepanne:/app
+      - /app/node_modules
+    networks:
+      - dedepanne-network
+    restart: unless-stopped
+
+  # Frontend Next.js
+  frontend:
+    build: ./frontend-dedepanne
+    container_name: dedepanne-frontend
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:3001
+      NODE_ENV: development
+    depends_on:
+      - backend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend-dedepanne:/app
+      - /app/node_modules
+      - /app/.next
+    networks:
+      - dedepanne-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  mongodb_data:
+
+networks:
+  dedepanne-network:
+    driver: bridge 

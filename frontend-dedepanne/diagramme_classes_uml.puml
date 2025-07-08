@@ -1,0 +1,249 @@
+@startuml
+' Interfaces
+interface IAuthenticable {
+  +login()
+  +logout()
+}
+
+interface ITrackable {
+  +addTimelineStep()
+  +getCurrentStatus()
+}
+
+' Classes métier
+abstract class User {
+  +id: int
+  +firstName: string
+  +lastName: string
+  +email: string
+  +phone: string
+  +avatar: string
+  +role: string
+  +login()
+  +register()
+  +updateProfile()
+}
+
+class Client extends User
+class Technician extends User
+class Admin extends User
+
+class Address {
+  +id: int
+  +user_id: int
+  +address_line: string
+  +city: string
+  +postal_code: string
+  +is_primary: bool
+}
+
+class RepairRequest {
+  +id: int
+  +user_id: int
+  +reference_code: string
+  +appliance_type: string
+  +brand: string
+  +model: string
+  +status: string
+  +scheduled_date: date
+  +total_cost: float
+  +technician_notes: string
+  +createRequest()
+  +updateStatus()
+  +addIntervention()
+}
+
+class Intervention {
+  +id: int
+  +repair_request_id: int
+  +technician_id: int
+  +date: date
+  +heure_debut: time
+  +heure_fin: time
+  +statut_intervention: string
+  +commentaire: string
+  +prochaine_action: string
+  +start()
+  +finish()
+  +addComment()
+}
+
+class Order {
+  +id: int
+  +user_id: int
+  +reference_code: string
+  +status: string
+  +total_amount: float
+  +delivery_date: date
+  +placeOrder()
+  +cancelOrder()
+  +trackOrder()
+}
+
+class OrderItem {
+  +id: int
+  +order_id: int
+  +product_id: string
+  +name: string
+  +price: float
+}
+
+class Product {
+  +id: string
+  +name: string
+  +brand: string
+  +category: string
+  +price: float
+  +original_price: float
+  +condition: string
+  +warranty_months: int
+  +features: string[]
+  +description: string
+  +image_url: string
+  +is_available: bool
+  +stock_quantity: int
+  +created_at: date
+}
+
+class Donation {
+  +id: int
+  +user_id: int
+  +reference_code: string
+  +appliance_type: string
+  +brand: string
+  +status: string
+  +pickup_date: date
+  +address: string
+  +schedulePickup()
+  +cancelDonation()
+}
+
+class Tracking implements ITrackable {
+  +id: int
+  +user_id: int
+  +reference_code: string
+  +type: string
+  +created_at: date
+  +addTimelineStep()
+  +getCurrentStatus()
+}
+
+class Timeline {
+  +id: int
+  +tracking_id: int
+  +date: date
+  +status: string
+  +completed: bool
+  +description: string
+}
+
+class LoyaltyProgram {
+  +id: int
+  +user_id: int
+  +points: int
+  +addPoints()
+  +redeemReward()
+}
+
+class LoyaltyHistory {
+  +id: int
+  +loyalty_program_id: int
+  +label: string
+  +points: int
+  +date: date
+}
+
+class Reward {
+  +id: int
+  +loyalty_program_id: int
+  +label: string
+  +unlocked: bool
+}
+
+class Progress {
+  +id: int
+  +reward_id: int
+  +current: int
+  +needed: int
+}
+
+class Voucher {
+  +id: int
+  +user_id: int
+  +amount: float
+  +status: string
+  +expires: date
+  +usedOn: date
+  +apply()
+  +expire()
+}
+
+class Referral {
+  +id: int
+  +user_id: int
+  +code: string
+  +explanation: string
+}
+
+' Services
+class UserService {
+  +registerUser()
+  +authenticateUser()
+  +modifyUserProfile()
+}
+
+class OrderService {
+  +placeOrder()
+  +cancelOrder()
+  +trackOrder()
+}
+
+class RepairService {
+  +createRequest()
+  +updateStatus()
+  +addIntervention()
+}
+
+class LoyaltyService {
+  +addPoints()
+  +redeemReward()
+}
+
+' Héritage
+User <|-- Client
+User <|-- Technician
+User <|-- Admin
+
+' Interfaces
+User ..|> IAuthenticable
+Tracking ..|> ITrackable
+
+' Associations, agrégations, compositions
+User "1" o-- "*" Address
+User "1" o-- "*" RepairRequest
+User "1" o-- "*" Order
+User "1" o-- "*" Donation
+User "1" o-- "*" Tracking
+User "1" o-- "1" LoyaltyProgram
+User "1" o-- "*" Voucher
+User "1" o-- "1" Referral
+
+RepairRequest "1" *-- "*" Intervention
+RepairRequest "1" o-- "*" Tracking : "traçabilité"
+Order "1" *-- "*" OrderItem
+OrderItem "*" o-- "1" Product
+Tracking "1" *-- "*" Timeline
+LoyaltyProgram "1" *-- "*" LoyaltyHistory
+LoyaltyProgram "1" *-- "*" Reward
+Reward "1" o-- "0..1" Progress
+
+' Dépendances (services vers entités)
+UserService ..> User
+OrderService ..> Order
+OrderService ..> OrderItem
+RepairService ..> RepairRequest
+RepairService ..> Intervention
+LoyaltyService ..> LoyaltyProgram
+LoyaltyService ..> Reward
+
+@enduml 

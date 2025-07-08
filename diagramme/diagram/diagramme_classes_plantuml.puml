@@ -1,0 +1,417 @@
+@startuml Diagramme_Classes_DeDePanne
+
+!theme plain
+skinparam classAttributeIconSize 0
+skinparam classFontSize 10
+skinparam classFontStyle bold
+skinparam packageFontSize 12
+skinparam packageFontStyle bold
+
+' ===== PACKAGES =====
+package "Backend Entities" {
+    package "User Management" {
+        class User {
+            +id: number
+            +email: string
+            +password_hash: string
+            +role: UserRole
+            +first_name: string
+            +last_name: string
+            +phone: string
+            +is_active: boolean
+            +created_at: Date
+            +updated_at: Date
+            +getAddresses()
+            +getRepairRequests()
+            +getDonations()
+            +getOrders()
+        }
+
+        class Address {
+            +id: number
+            +user_id: number
+            +address_line1: string
+            +city: string
+            +postal_code: string
+            +department: string
+            +is_primary: boolean
+        }
+    }
+
+    package "Repair Management" {
+        class RepairRequest {
+            +id: number
+            +reference_code: string
+            +user_id: number
+            +appliance_type_id: number
+            +brand_id: number
+            +model: string
+            +issue_description: string
+            +status: RepairStatus
+            +base_price: number
+            +additional_cost: number
+            +total_cost: number
+            +scheduled_date: Date
+            +scheduled_time_slot: string
+            +technician_notes: string
+            +created_at: Date
+            +updated_at: Date
+            +getInterventions()
+            +getHistory()
+        }
+
+        class Intervention {
+            +id: number
+            +repair_request_id: number
+            +date: Date
+            +start_time: string
+            +end_time: string
+            +status: InterventionStatus
+            +commentaire: string
+            +next_action: string
+            +created_at: Date
+            +updated_at: Date
+            +getHistory()
+        }
+
+        class RepairRequestHistory {
+            +id: number
+            +repair_request_id: number
+            +status: string
+            +date: Date
+            +commentaire: string
+        }
+
+        class InterventionHistory {
+            +id: number
+            +intervention_id: number
+            +status: string
+            +date: Date
+            +commentaire: string
+            +prochaine_action: string
+        }
+    }
+
+    package "Product Management" {
+        class ReconditionedProduct {
+            +id: number
+            +name: string
+            +appliance_type_id: number
+            +brand_id: number
+            +model: string
+            +price: number
+            +original_price: number
+            +savings_percentage: number
+            +condition_rating: ConditionRating
+            +warranty_months: number
+            +features: JSON
+            +description: string
+            +image_url: string
+            +stock_quantity: number
+            +is_available: boolean
+            +created_at: Date
+            +updated_at: Date
+        }
+
+        class Order {
+            +id: number
+            +user_id: number
+            +reference_code: string
+            +status: OrderStatus
+            +total_amount: number
+            +delivery_date: Date
+            +created_at: Date
+            +updated_at: Date
+            +getItems()
+            +getHistory()
+        }
+
+        class OrderItem {
+            +id: number
+            +order_id: number
+            +product_id: number
+            +name: string
+            +price: number
+            +created_at: Date
+        }
+
+        class OrderHistory {
+            +id: number
+            +order_id: number
+            +etape: string
+            +date: Date
+            +transporteur: string
+            +numero_suivi: string
+            +commentaire: string
+        }
+    }
+
+    package "Donation Management" {
+        class Donation {
+            +id: number
+            +user_id: number
+            +reference_code: string
+            +appliance_type_id: number
+            +brand_id: number
+            +status: DonationStatus
+            +pickup_date: Date
+            +address: string
+            +created_at: Date
+            +updated_at: Date
+            +getHistory()
+        }
+
+        class DonationHistory {
+            +id: number
+            +donation_id: number
+            +etape: string
+            +date: Date
+            +lieu: string
+            +commentaire: string
+        }
+    }
+}
+
+package "Enums" {
+    enum UserRole {
+        ADMIN
+        PRO
+        CLIENT
+    }
+
+    enum RepairStatus {
+        PENDING
+        CONFIRMED
+        SCHEDULED
+        IN_PROGRESS
+        COMPLETED
+        CANCELLED
+    }
+
+    enum InterventionStatus {
+        SCHEDULED
+        IN_PROGRESS
+        COMPLETED
+        CANCELLED
+    }
+
+    enum OrderStatus {
+        PENDING
+        CONFIRMED
+        SHIPPED
+        DELIVERED
+        CANCELLED
+    }
+
+    enum DonationStatus {
+        PENDING
+        CONFIRMED
+        PICKED_UP
+        PROCESSED
+        COMPLETED
+        CANCELLED
+    }
+
+    enum ConditionRating {
+        EXCELLENT
+        VERY_GOOD
+        GOOD
+        FAIR
+    }
+}
+
+package "Frontend Components" {
+    package "Authentication" {
+        class AuthContext {
+            +user: User
+            +isAuthenticated: boolean
+            +login(email, password)
+            +logout()
+            +register(userData)
+            +getProfile()
+        }
+    }
+
+    package "Forms" {
+        class RepairForm {
+            +applianceType: string
+            +brand: string
+            +model: string
+            +issueDescription: string
+            +address: string
+            +submitForm()
+            +validateForm()
+            +resetForm()
+        }
+
+        class DonationForm {
+            +applianceType: string
+            +brand: string
+            +condition: string
+            +address: string
+            +pickupDate: Date
+            +submitForm()
+            +validateForm()
+            +resetForm()
+        }
+    }
+
+    package "UI Components" {
+        class ProductCard {
+            +product: ReconditionedProduct
+            +addToCart()
+            +viewDetails()
+            +checkAvailability()
+        }
+
+        class OrderTracking {
+            +order: Order
+            +trackOrder()
+            +getOrderStatus()
+            +getDeliveryInfo()
+        }
+
+        class Dashboard {
+            +userRepairs: RepairRequest[]
+            +userDonations: Donation[]
+            +userOrders: Order[]
+            +loadUserData()
+            +refreshData()
+        }
+    }
+}
+
+package "Backend Services" {
+    class AuthService {
+        +register(createUserDto)
+        +login(loginDto)
+        +getProfile(userId)
+        +validateToken(token)
+        +generateToken(user)
+    }
+
+    class RepairsService {
+        +createRepairRequest(dto, userId)
+        +findAllRepairRequests(userId, role)
+        +findRepairRequestById(id, userId, role)
+        +updateRepairRequest(id, dto, userId, role)
+        +createIntervention(repairRequestId, dto, userId)
+        +updateIntervention(id, dto, userId)
+        +finalizeIntervention(id, userId)
+    }
+
+    class DonationsService {
+        +createDonation(userId, donationData)
+        +findAllDonations(userId)
+        +findDonationById(id, userId)
+        +updateDonationStatus(id, status)
+    }
+
+    class ProductsService {
+        +findAllProducts()
+        +findProductById(id)
+        +createOrder(userId, items)
+        +findOrderById(id, userId)
+        +updateOrderStatus(id, status)
+    }
+
+    class UsersService {
+        +findById(id)
+        +updateProfile(userId, dto)
+        +createAddress(userId, dto)
+        +getUserAddresses(userId)
+    }
+
+    class LogsService {
+        +log(level, category, message, metadata, userId)
+        +getLogs(filters)
+        +exportLogs(format)
+    }
+}
+
+package "Frontend Hooks" {
+    class useRepairs {
+        +repairs: RepairRequest[]
+        +loading: boolean
+        +error: string
+        +fetchRepairs()
+        +createRepair(repairData)
+    }
+
+    class useDonations {
+        +donations: Donation[]
+        +loading: boolean
+        +error: string
+        +fetchDonations()
+        +createDonation(donationData)
+    }
+
+    class useProducts {
+        +products: ReconditionedProduct[]
+        +loading: boolean
+        +error: string
+        +fetchProducts()
+    }
+
+    class useUserData {
+        +userRepairs: RepairRequest[]
+        +userOrders: Order[]
+        +userDonations: Donation[]
+        +loading: boolean
+        +error: string
+        +fetchUserData()
+    }
+}
+
+' ===== RELATIONS =====
+
+' === ASSOCIATIONS (liens simples) ===
+User ||--o{ RepairRequest : "effectue"
+User ||--o{ Donation : "fait"
+User ||--o{ Order : "passe"
+User ||--o{ Address : "possède"
+
+' === COMPOSITIONS (relation forte - existence dépendante) ===
+RepairRequest *--o{ Intervention : "comporte"
+RepairRequest *--o{ RepairRequestHistory : "trace"
+Intervention *--o{ InterventionHistory : "trace"
+Order *--o{ OrderItem : "contient"
+Order *--o{ OrderHistory : "trace"
+Donation *--o{ DonationHistory : "trace"
+
+' === AGRÉGATIONS (relation souple - existence indépendante) ===
+ReconditionedProduct o--o{ OrderItem : "référencé dans"
+
+' === RELATIONS AVEC ENUMS ===
+User --> UserRole : "a"
+RepairRequest --> RepairStatus : "a"
+Intervention --> InterventionStatus : "a"
+Order --> OrderStatus : "a"
+Donation --> DonationStatus : "a"
+ReconditionedProduct --> ConditionRating : "a"
+
+' === RELATIONS SERVICES ===
+AuthService --> User : "gère"
+RepairsService --> RepairRequest : "gère"
+RepairsService --> Intervention : "gère"
+DonationsService --> Donation : "gère"
+ProductsService --> ReconditionedProduct : "gère"
+ProductsService --> Order : "gère"
+UsersService --> User : "gère"
+UsersService --> Address : "gère"
+LogsService --> User : "enregistre les actions"
+
+' === RELATIONS FRONTEND ===
+AuthContext --> User : "gère"
+RepairForm --> RepairRequest : "crée"
+DonationForm --> Donation : "crée"
+ProductCard --> ReconditionedProduct : "affiche"
+OrderTracking --> Order : "suit"
+Dashboard --> User : "affiche les données"
+
+useRepairs --> RepairRequest : "gère"
+useDonations --> Donation : "gère"
+useProducts --> ReconditionedProduct : "gère"
+useUserData --> User : "gère les données"
+
+@enduml 

@@ -1,0 +1,191 @@
+#basic class definition
+CLASS "User" as User:
+"id"
+"firstName"
+"lastName"
+"email"
+"phone"
+"avatar"
+"role"
+"User()"
+"login()"
+"register()"
+"updateProfile()"
+
+#basic class definition with field and method grouping
+CLASS "Address" as Address:
+-"id"
+-"user_id"
+-"address_line"
+-"city"
+-"postal_code"
+-"is_primary"
+
+CLASS "RepairRequest" as RepairRequest:
+-"id"
+-"user_id"
+-"reference_code"
+-"appliance_type"
+-"brand"
+-"model"
+-"status"
+-"scheduled_date"
+-"total_cost"
+-"technician_notes"
++"createRequest()"
++"updateStatus()"
++"addIntervention()"
+
+CLASS "Intervention" as Intervention:
+-"id"
+-"repair_request_id"
+-"date"
+-"heure_debut"
+-"heure_fin"
+-"statut_intervention"
+-"commentaire"
+-"prochaine_action"
++"start()"
++"finish()"
++"addComment()"
+
+CLASS "Order" as Order:
+-"id"
+-"user_id"
+-"reference_code"
+-"status"
+-"total_amount"
+-"delivery_date"
++"placeOrder()"
++"cancelOrder()"
++"trackOrder()"
+
+CLASS "OrderItem" as OrderItem:
+-"id"
+-"order_id"
+-"product_id"
+-"name"
+-"price"
+
+CLASS "Product" as Product:
+-"id"
+-"name"
+-"brand"
+-"category"
+-"price"
+-"original_price"
+-"condition"
+-"warranty_months"
+-"features"
+-"description"
+-"image_url"
+-"is_available"
+-"stock_quantity"
+-"created_at"
+
+CLASS "Donation" as Donation:
+-"id"
+-"user_id"
+-"reference_code"
+-"appliance_type"
+-"brand"
+-"status"
+-"pickup_date"
+-"address"
++"schedulePickup()"
++"cancelDonation()"
+
+CLASS "Tracking" as Tracking:
+-"id"
+-"user_id"
+-"reference_code"
+-"type"
+-"created_at"
++"addTimelineStep()"
++"getCurrentStatus()"
+
+CLASS "Timeline" as Timeline:
+-"id"
+-"tracking_id"
+-"date"
+-"status"
+-"completed"
+-"description"
+
+CLASS "LoyaltyProgram" as LoyaltyProgram:
+-"id"
+-"user_id"
+-"points"
++"addPoints()"
++"redeemReward()"
+
+CLASS "LoyaltyHistory" as LoyaltyHistory:
+-"id"
+-"loyalty_program_id"
+-"label"
+-"points"
+-"date"
+
+CLASS "Reward" as Reward:
+-"id"
+-"loyalty_program_id"
+-"label"
+-"unlocked"
+
+CLASS "Progress" as Progress:
+-"id"
+-"reward_id"
+-"current"
+-"needed"
+
+CLASS "Voucher" as Voucher:
+-"id"
+-"user_id"
+-"amount"
+-"status"
+-"expires"
+-"usedOn"
++"apply()"
++"expire()"
+
+CLASS "Referral" as Referral:
+-"id"
+-"user_id"
+-"code"
+-"explanation"
+
+#class relations reference:
+# A-B  (A and B calls and access to each other)  
+# A-B: association   (A and B calls and access to each other) (same as previous)
+# A-B: strict_association   (A calls and access B but not vice versa)
+# A-B: composition   (A has a B and B depends on A)
+# A-B: aggregation  (A has B and B can outlive A)
+# A-B: dependency    (A depends on B)
+# A-B: inheritance   (A inherits B)
+# A-B: implementation   (A implements B)
+
+#you can add multiplicity to any relation by adding ["anytext","anytext"] eg:
+# A-B: implementation["anytext","anytext"]
+
+# Relations entre les classes
+User-Address: composition["1","*"]
+User-RepairRequest: composition["1","*"]
+User-Order: composition["1","*"]
+User-Donation: composition["1","*"]
+User-LoyaltyProgram: composition["1","1"]
+User-Voucher: composition["1","*"]
+User-Referral: composition["1","1"]
+User-Tracking: composition["1","*"]
+
+Order-OrderItem: composition["1","*"]
+OrderItem-Product: strict_association["*","1"]
+LoyaltyProgram-LoyaltyHistory: composition["1","*"]
+LoyaltyProgram-Reward: composition["1","*"]
+Reward-Progress: composition["1","0..1"]
+RepairRequest-Intervention: composition["1","*"]
+Tracking-Timeline: composition["1","*"]
+
+# Relations via reference_code
+Tracking-RepairRequest: dependency
+Tracking-Order: dependency
+Tracking-Donation: dependency 

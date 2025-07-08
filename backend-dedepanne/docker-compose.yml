@@ -1,0 +1,117 @@
+services:
+  # Base de données PostgreSQL
+  postgres:
+    image: postgres:15-alpine
+    container_name: dedepanne-postgres
+    environment:
+      POSTGRES_DB: dedepanne
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5439:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    networks:
+      - dedepanne-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d dedepanne"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Base de données MongoDB pour les logs
+  mongodb:
+    image: mongo:6.0
+    container_name: dedepanne-mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: dedepanne_logs
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - dedepanne-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend NestJS
+  backend:
+    build: .
+    container_name: dedepanne-backend
+    environment:
+      # Base de données PostgreSQL
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: postgres
+      DB_PASSWORD: password
+      DB_NAME: dedepanne
+      
+      # MongoDB pour les logs
+      MONGODB_URI: mongodb://admin:password@mongodb:27017/dedepanne_logs?authSource=admin
+      
+      # JWT
+      JWT_SECRET: your-super-secret-jwt-key-change-in-production
+      JWT_EXPIRES_IN: 24h
+      
+      # Application
+      PORT: 3002
+      NODE_ENV: development
+      FRONTEND_URL: http://localhost:3000
+    ports:
+      - "3002:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    networks:
+      - dedepanne-network
+    volumes:
+      - ./src:/app/src
+      - ./package*.json:/app/package*.json
+      - ./tsconfig.json:/app/tsconfig.json
+      - ./nest-cli.json:/app/nest-cli.json
+    command: npm run start:dev
+
+  # pgAdmin pour gérer PostgreSQL (optionnel)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: dedepanne-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@dedepanne.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    networks:
+      - dedepanne-network
+
+  # MongoDB Express pour gérer MongoDB (optionnel)
+  mongo-express:
+    image: mongo-express:latest
+    container_name: dedepanne-mongo-express
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: admin
+      ME_CONFIG_MONGODB_ADMINPASSWORD: password
+      ME_CONFIG_MONGODB_URL: mongodb://admin:password@mongodb:27017/
+    ports:
+      - "8081:8081"
+    depends_on:
+      - mongodb
+    networks:
+      - dedepanne-network
+
+volumes:
+  postgres_data:
+  mongodb_data:
+
+networks:
+  dedepanne-network:
+    driver: bridge 
